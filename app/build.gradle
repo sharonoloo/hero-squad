@@ -10,6 +10,8 @@
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     id 'application'
+    id 'com.gradle.enterprise' version '3.14.1'
+    id 'com.gradle.enterprise' version '3.12.6'
 }
 
 repositories {
