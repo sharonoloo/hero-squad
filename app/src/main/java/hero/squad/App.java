@@ -1,3 +1,5 @@
+package hero.squad;
+
 import spark.ModelAndView;
 import spark.template.handlebars.HandlebarsTemplateEngine;
 
