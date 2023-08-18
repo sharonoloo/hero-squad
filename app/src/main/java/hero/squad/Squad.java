@@ -1,4 +1,6 @@
-public import java.util.ArrayList;
+package hero.squad;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class Squad {
@@ -59,6 +61,4 @@ public class Squad {
         }
         return exists;
     }
-} {
-    
-}
+} 

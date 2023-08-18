@@ -20,6 +20,9 @@ repositories {
 dependencies {
     // This dependency is used by the application.
     implementation 'com.google.guava:guava:31.1-jre'
+    implementation "com.sparkjava:spark-core:2.6.0"
+    implementation "com.sparkjava:spark-template-handlebars:2.5.5"
+    implementation'org.slf4j:slf4j-simple:1.7.21'
 }
 
 testing {
