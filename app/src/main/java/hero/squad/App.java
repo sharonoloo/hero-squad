@@ -1,128 +1,171 @@
+import spark.ModelAndView;
+import spark.template.handlebars.HandlebarsTemplateEngine;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import spark.ModelAndView;
-import java.util.ArrayList;
-import java.util.List;
-import spark.template.velocity.VelocityTemplateEngine;
-
-import javax.sound.sampled.Port;
 
 import static spark.Spark.*;
+
 public class App {
-    public static void main(String[] args) {
-        staticFileLocation("/public");
-        String layout = "templates/layout.vtl";
-
-
-        ProcessBuilder process = new ProcessBuilder();
-        Integer port;
-        if (process.environment().get("PORT") != null) {
-            port = Integer.parseInt(process.environment().get("PORT"));
-        } else {
-            port = 4567;
+    static int getHerokuAssignedPort() {
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        if (processBuilder.environment().get("PORT") != null) {
+            return Integer.parseInt(processBuilder.environment().get("PORT"));
         }
+        return 4567; //return default port if heroku-port isn't set (i.e. on localhost)
+    }
+    public static void main(String[] args) {
+        port(getHerokuAssignedPort());
+        staticFileLocation("/public");
+        get("/",(request, response) -> {
+            Map<String,Object> model = new HashMap<String, Object>();
+            return new ModelAndView(model, "index.hbs");
+        }, new HandlebarsTemplateEngine());
 
-        port(port);
-
-        get("/", (request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-            model.put("template", "templates/index.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
-
-
-        // getting all heroes  showing all hero details
-        get("/heroes", (request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-            model.put("heroes", Hero.all());
-            model.put("template", "templates/heroes.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
-
-        //getting heroes by their id which was returned by find method //
-        get("/heroes/:id", (request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-            Hero hero = Hero.find(Integer.parseInt(request.params(":id")));
-            model.put("hero", hero);
-            model.put("template", "templates/hero.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
-
-
-        // route to serve the form for adding new squads
-        get("squads/new", (request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-            model.put("template", "templates/squadForm.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
-
-
-
-        // gather input from squad form after displaying success message
-        post("/squads", (request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-            String name = request.queryParams("name");
-            int size = Integer.parseInt(request.queryParams("size"));
-            String cause = request.queryParams("cause");
-            Squad newSquad= new Squad(name,size,cause);
-            model.put("template", "templates/squadSuccess.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
-        //route to handle squads showing all squads in the squads list
-        get("/squads", (request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-            model.put("squads", Squad.all());
-            model.put("template", "templates/squads.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
-
-        //route to handle displaying found squad returned by the find method in class Hero
-        get("/squads/:id",(request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-            Squad squad = Squad.find(Integer.parseInt(request.params(":id")));
-            model.put("squad", squad);
-            model.put("template", "templates/squad.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
-        // route to handle a form for adding new heroes to squads specific squad using the squad id
-        get("squads/:id/heroes/new", (request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-            Squad squad = Squad.find(Integer.parseInt(request.params(":id")));
-            model.put("squad", squad);
-            model.put("template", "templates/squadHeroesForm.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
-
-
-        // modified the post("/heroes") route to "find" the Squad object that we are adding the newHero to then add the hero to that found Squad.
-        post("/heroes", (request, response) -> {
-            Map<String, Object> model = new HashMap<String, Object>();
-
-            Squad squad = Squad.find(Integer.parseInt(request.queryParams("squadId")));
-
+        post("/heroes/new",(request, response) -> {
+            Map<String,Object> model = new HashMap<>();
             String name = request.queryParams("name");
             int age = Integer.parseInt(request.queryParams("age"));
-            String power = request.queryParams("power");
-            String weakness = request.queryParams("weakness");
-            Hero newHero = new Hero(name, age, power, weakness);
-            // check if hero is already in the squad
-            if (Squad.heroAlreadyExists(newHero)) {
-                String heroExists = "Hero " + name + " is already in the squad";
-                model.put("heroExists", heroExists);
+            String[] powersAdd = request.queryMap().toMap().get("power");
+            ArrayList<String> powers = new ArrayList<String>();
+            for (int i=0;i<powersAdd.length;i++){
+                powers.add(powersAdd[i]);
             }
-            //check that squad members dont exceed users specified number of heroes
-            else if (squad.getHeroes().size() >= squad.getSize()) {
-                String sizeMet = "Squad is full";
-                model.put("sizeMet", sizeMet);
-            }
-            // add the hero
-            else{
-                squad.addHero(newHero);
-            }
+            model.put("powers",powers);
 
-            model.put("squad", squad);
-            model.put("template", "templates/squadHeroesSuccess.vtl");
-            return new ModelAndView(model, layout);
-        }, new VelocityTemplateEngine());
+            String[] weaknessAdd =  request.queryMap().toMap().get("weakness");
+            ArrayList<String> weaknesses = new ArrayList<String>();
+            for (String s:weaknessAdd){
+                weaknesses.add(s);
+            }
+            model.put("weaknesses",weaknesses);
+
+            ArrayList<Squad> squads = Squad.getAll();
+            model.put("squads",squads);
+            int squadId = Integer.parseInt(request.queryParams("squadId"));
+            Hero hero = new Hero(name,age,powers,weaknesses,squadId);
+            model.put("hero",hero);
+            return new ModelAndView(model,"successHero.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        get("/heroes", (request, response) -> {
+            Map<String, Object> model = new HashMap<String, Object>();
+            ArrayList<Hero> heroes = Hero.getAll();
+            model.put("heroes",heroes);
+            ArrayList<Squad> squads = Squad.getAll();
+            model.put("squads",squads);
+            return new ModelAndView(model, "heroes.hbs");
+        },new HandlebarsTemplateEngine());
+
+        get("/heroes/list",(request, response) -> {
+            Map<String,Object> model = new HashMap<String, Object>();
+            ArrayList<Hero> heroes = Hero.getAll();
+            model.put("heroes",heroes);
+            ArrayList<Squad> squads = Squad.getAll();
+            model.put("squads",squads);
+            for (Hero hero: heroes) {
+                int heroFindId = hero.getSquadId();
+                Squad squad = Squad.findById(heroFindId);
+                model.put("squad",squad);
+            }
+            return new ModelAndView(model,"heroesList.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        get("/heroes/delete", (request, response) -> {
+            Map<String,Object> model = new HashMap<String, Object>();
+            Hero.clearAll();
+            return new ModelAndView(model, "successHero.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        get("/heroes/:id", (request, response) -> {
+            Map<String, Object> model = new HashMap<>();
+            int idOfHeroToFind = Integer.parseInt(request.params("id"));
+            Hero foundHero = Hero.findById(idOfHeroToFind);
+            int squadId = foundHero.getSquadId();
+            Squad squad = Squad.findById(squadId);
+            ArrayList<Hero> heroes = Hero.getAll();
+            model.put("squad",squad);
+            model.put("hero",foundHero);
+            model.put("heroes",heroes);
+            return new ModelAndView(model,"heroesList.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        get("/heroes/:id/update", (request, response) -> {
+            Map<String, Object> model = new HashMap<>();
+            ArrayList<Squad> squads = Squad.getAll();
+            int idOfHeroToEdit = Integer.parseInt(request.params("id"));
+            Hero editHero = Hero.findById(idOfHeroToEdit);
+            model.put("editHero", editHero);
+            model.put("squads",squads);
+            return  new ModelAndView(model, "heroes.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        post("/heroes/:id/update", (request, response) -> {
+            Map<String, Object> model = new HashMap<>();
+            String newName = request.queryParams("name");
+            int newAge = Integer.parseInt(request.queryParams("age"));
+            int idOfHeroToEdit = Integer.parseInt(request.params("id"));
+            String[] powersAdd = request.queryMap().toMap().get("power");
+            ArrayList<String> powers = new ArrayList<String>();
+            for (int i=0;i<powersAdd.length;i++){
+                powers.add(powersAdd[i]);
+            }
+            model.put("powers",powers);
+
+            String[] weaknessAdd =  request.queryMap().toMap().get("weakness");
+            ArrayList<String> weaknesses = new ArrayList<String>();
+            for (String s:weaknessAdd){
+                weaknesses.add(s);
+            }
+            Hero editHero = Hero.findById(idOfHeroToEdit);
+            editHero.update(newName, newAge, powers, weaknesses);
+            return new ModelAndView(model, "successHero.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        get("/heroes/:id/delete", (request, response) -> {
+            Map<String, Object> model = new HashMap<>();
+            int idOfHeroToDelete = Integer.parseInt(request.params("id"));
+
+            Hero deleteHero = Hero.findById(idOfHeroToDelete);
+            deleteHero.deleteHero();
+
+            return new ModelAndView(model, "successHero.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        //squad
+        get("/squads", (request, response) -> {
+            Map<String, Object> model = new HashMap<String, Object>();
+            return new ModelAndView(model, "squad.hbs");
+        },new HandlebarsTemplateEngine());
+
+        post("/squads/new", (request, response) -> {
+            Map<String, Object> model = new HashMap<String, Object>();
+            String name = request.queryParams("name");
+            int maxSize = Integer.parseInt(request.queryParams("maxSize"));
+            String cause = request.queryParams("cause");
+            Squad squad = new Squad(maxSize,name,cause);
+            return new ModelAndView(model, "successSquad.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        get("/squads/list", (request, response) -> {
+            Map<String, Object> model = new HashMap<>();
+            ArrayList<Squad> squads = Squad.getAll();
+            model.put("squads", squads);
+
+            return new ModelAndView(model, "squadList.hbs");
+        }, new HandlebarsTemplateEngine());
+
+        get("/squad/:id",(request, response) ->{
+            Map<String, Object> model = new HashMap<>();
+            int squadId =Integer.parseInt(request.params("squadId"));
+            Hero heroes = Hero.findById(squadId);
+            Squad squads = Squad.findById(squadId);
+            model.put("squad",squads);
+            model.put("heroes", heroes);
+            return new ModelAndView(model,"squadList.hbs");
+        },new HandlebarsTemplateEngine());
+
+
     }
 }

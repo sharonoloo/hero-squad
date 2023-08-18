@@ -1,61 +1,56 @@
+public import java.util.ArrayList;
 import java.util.List;
-import java.util.ArrayList;
+
 public class Squad {
-    private String mName;
-    private int mSize;
-    private String mCause;
-    private static List<Squad> instances = new ArrayList<Squad>();
-    private int mId;
-    private List<Hero> mHeroes;
+    private int maxSize;
+    private String name;
+    private String cause;
+    private static ArrayList<Squad> instance = new ArrayList<Squad>();
+    private int id;
+    private List<Hero> Heroes;
 
-    public Squad(String name, int size, String cause) {
-        mName = name;
-        mSize = size;
-        mCause = cause;
-        instances.add(this);
-        mId = instances.size();
-        mHeroes = new ArrayList<Hero>();
+// Create a constructor
+    public Squad(int maxSize, String name, String cause){
+        this.maxSize = maxSize;
+        this.name = name;
+        this.cause = cause;
+        instance.add(this);
+        this.id = instance.size();
+        Heroes=new ArrayList<Hero>();
+
     }
 
-    public String getName() {
-        return mName;
+    // Create get methods
+    public int getMaxSize() {
+        return maxSize;
     }
-
-    public int getSize() {
-        return mSize;
+    public String getName(){
+        return name;
     }
-
     public String getCause() {
-        return mCause;
+        return cause;
     }
-
-    public static List<Squad> all() {
-        return instances;
-    }
-
-    public static void clear() {
-        instances.clear();
+    public static  ArrayList<Squad> getAll(){
+        return instance;
     }
 
     public int getId() {
-        return mId;
+        return id;
     }
-
-    public static Squad find(int id) {
-        return instances.get(id - 1);
+    public static Squad findById(int id) {
+        return instance.get(id - 1);
     }
-
     public List<Hero> getHeroes() {
-        return mHeroes;
+        return Heroes;
     }
 
     public void addHero(Hero hero) {
-        mHeroes.add(hero);
+        Heroes.add(hero);
     }
 
     public static boolean heroAlreadyExists(Hero newHero) {
         boolean exists = false;
-        for (Squad squad : instances) {
+        for (Squad squad : instance) {
             for (Hero hero : squad.getHeroes()) {
                 if (hero.getName().equals(newHero.getName())) {
                     exists = true;
@@ -64,4 +59,6 @@ public class Squad {
         }
         return exists;
     }
+} {
+    
 }
